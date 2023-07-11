@@ -19,8 +19,8 @@ node{
     
     stage("Docker Push"){
         
-       withCredentials([string(credentialsId: 'Docker', variable: 'Docker')]) {
-          sh "docker login -u admin -p ${Docker}  surjil1612"   
+       withCredentials([string(credentialsId: 'Dockers', variable: 'Dockers')]) {
+          sh "docker login -u admin -p ${Dockers}  surjil1612"   
        }
        
         sh "docker push surjil1612/java-web-app:${buildNumber}"
@@ -28,12 +28,12 @@ node{
 
    stage("Deploy to docker swarm cluster"){
      sshagent(['Docker_Swarm_Manager_Dev']) {
-      sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.10.56 docker service rm javawebapp || true'
-      withCredentials([string(credentialsId: 'Docker_Repo_Pwd', variable: 'Docker_Repo_Pwd')]) {
+      sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.32.167 docker service rm javawebapp || true'
+      withCredentials([string(credentialsId: 'Dockers', variable: 'Dockers')]) {
  
-       sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.10.56 docker login -u admin -p ${Docker_Repo_Pwd}  172.31.1.204:8083"   
+       sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.32.167 docker login -u admin -p ${Dockers}  surjil1612"   
       }
-      sh "ssh ubuntu@172.31.10.56 docker service create --name javawebapp -p 7070:8080 --replicas 2 --with-registry-auth 172.31.1.204:8083/java-web-app:${buildNumber}"
+      sh "ssh ubuntu@172.31.32.167 docker service create --name javawebapp -p 7070:8080 --replicas 2 --with-registry-auth surjil1612/java-web-app:${buildNumber}"
     }
   }
     
