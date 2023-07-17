@@ -1,6 +1,6 @@
 node{
-     
-    stage('SCM Checkout'){
+    def buildNumber = BUILD_NUMBER
+    stage("Git CheckOut"){
         git url: 'https://github.com/surjil/java-web-app-docker.git',branch: 'master'
     }
     
@@ -8,33 +8,23 @@ node{
       def mavenHome =  tool name: "Maven", type: "maven"
       def mavenCMD = "${mavenHome}/bin/mvn"
       sh "${mavenCMD} clean package"
-      
     } 
     
-    
-    stage('Build Docker Image'){
-        sh 'docker build -t surjil1612/java-web-app .'
+    stage("Build Dokcer Image") {
+         sh "docker build -t surjil1612/java-web-app:${buildNumber} ."
     }
     
-    stage('Push Docker Image'){
-        withCredentials([string(credentialsId: 'Dockers', variable: 'Dockers')]) {
-          sh "docker login -u surjil1612 -p ${Dockers}"
+    stage("Docker Push"){
+        withCredentials([string(credentialsId: 'Docker_Hub_Pwd', variable: 'Docker_Hub_Pwd')]) {
+          sh "docker login -u surjil1612 -p ${Docker_Hub_Pwd}"
         }
-        sh 'docker push surjil1612/java-web-app'
-     }
-     
-      stage('Run Docker Image In Dev Server'){
+        sh "docker push surjil1612/java-web-app:${buildNumber}"
         
-        def dockerRun = ' docker run  -d -p 8080:8080 --name java-web-app dockerhandson/java-web-app'
-         
-         sshagent(['DOCKER_SERVER']) {
-          sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.20.72 docker stop java-web-app || true'
-          sh 'ssh  ubuntu@172.31.20.72 docker rm java-web-app || true'
-          sh 'ssh  ubuntu@172.31.20.72 docker rmi -f  $(docker images -q) || true'
-          sh "ssh  ubuntu@172.31.20.72 ${dockerRun}"
-       }
-       
     }
-     
-     
+}
+    stage("Deploy to dockercontainer in docker deployer"){
+        sshagent(['docker_ssh_password']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker service rm -f cloudcandy || true'
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker run -d -p 8080:8080 --name cloudcandy surjil1612/java-web-app:${buildNumber}"
+        }
 }
