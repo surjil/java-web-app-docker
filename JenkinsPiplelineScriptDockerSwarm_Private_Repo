@@ -1,7 +1,5 @@
 node{
-    
-   def buildNumber = BUILD_NUMBER
-   
+    def buildNumber = BUILD_NUMBER
     stage("Git CheckOut"){
         git url: 'https://github.com/surjil/java-web-app-docker.git',branch: 'master'
     }
@@ -16,25 +14,17 @@ node{
          sh "docker build -t surjil1612/java-web-app:${buildNumber} ."
     }
     
-    
     stage("Docker Push"){
-        
-       withCredentials([string(credentialsId: 'Dockers', variable: 'Dockers')]) {
-          sh "docker login -u admin -p ${Dockers}  surjil1612"   
-       }
-       
+        withCredentials([string(credentialsId: 'Docker_Hub_Pwd', variable: 'Docker_Hub_Pwd')]) {
+          sh "docker login -u surjil1612 -p ${Docker_Hub_Pwd}"
+        }
         sh "docker push surjil1612/java-web-app:${buildNumber}"
+        
     }
-
-   stage("Deploy to docker swarm cluster"){
-     sshagent(['Docker_Swarm_Manager_Dev']) {
-      sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.32.167 docker service rm javawebapp || true'
-      withCredentials([string(credentialsId: 'Dockers', variable: 'Dockers')]) {
- 
-       sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.32.167 docker login -u admin -p ${Dockers}  surjil1612"   
-      }
-      sh "ssh ubuntu@172.31.32.167 docker service create --name javawebapp -p 7070:8080 --replicas 2 --with-registry-auth surjil1612/java-web-app:${buildNumber}"
-    }
-  }
-    
+}
+    stage("Deploy to dockercontainer in docker deployer"){
+        sshagent(['docker_ssh_password']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker service rm -f cloudcandy || true'
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker run -d -p 8080:8080 --name cloudcandy surjil1612/java-web-app:${buildNumber}"
+        }
 }
