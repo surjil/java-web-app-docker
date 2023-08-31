@@ -21,10 +21,11 @@ node{
         sh "docker push surjil1612/java-web-app:${buildNumber}"
         
     }
-}
+
     stage("Deploy to dockercontainer in docker deployer"){
         sshagent(['docker_ssh_password']) {
             sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker service rm -f cloudcandy || true'
             sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.86.155 docker run -d -p 8080:8080 --name cloudcandy surjil1612/java-web-app:${buildNumber}"
         }
-}
+    }
+}    
